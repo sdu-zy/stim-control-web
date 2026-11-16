@@ -42,7 +42,7 @@
   <section class="panel" aria-labelledby="channelTitle">
     <h2 id="channelTitle">刺激通道 <span class="tag" id="count">已选 0 / 8</span></h2>
     <div class="channel-grid" id="channels"></div>
-    <p class="legend">可同时选择多路；固件按 1–8 路顺序轮询。</p>
+    <p class="legend">循环刺激可同时选择多路；正向、反向刺激只选一路。</p>
   </section>
   <section class="panel" aria-labelledby="modeTitle">
     <h2 id="modeTitle">输出模式</h2>
@@ -51,6 +51,7 @@
       <button class="choice" data-mode="1" aria-pressed="false">正向刺激</button>
       <button class="choice" data-mode="2" aria-pressed="false">反向刺激</button>
     </div>
+    <p class="legend">正向和反向为固定一路、固定方向的持续直流输出，用于电阻负载标定；循环刺激保持双向短脉冲。</p>
   </section>
   <section class="panel" aria-labelledby="levelTitle">
     <div class="level-head"><h2 id="levelTitle">目标峰值电流</h2><div class="level-big"><span id="levelText">0</span> <small>mA</small></div></div>
@@ -97,7 +98,7 @@ function selectedDuration(){
 function formatSeconds(n){return `${Math.floor(n/60)} 分 ${String(n%60).padStart(2,'0')} 秒`;}
 for(let i=0;i<8;i++){
   const b=document.createElement('button');b.className='channel';b.textContent=`${i+1} 路`;b.type='button';
-  b.setAttribute('aria-pressed','false');b.onclick=()=>{const wasRunning=running;mask^=1<<i;if(running&&mask===0){running=false;$('level').value=0;}render();if(wasRunning)send();};$('channels').append(b);
+  b.setAttribute('aria-pressed','false');b.onclick=()=>{const wasRunning=running;const bit=1<<i;mask=mode===0?mask^bit:(mask===bit?0:bit);if(running&&mask===0){running=false;$('level').value=0;}render();if(wasRunning)send();};$('channels').append(b);
 }
 function render(){
   const ok=online();$('connect').disabled=ok;$('disconnect').disabled=!ok;
@@ -159,7 +160,7 @@ $('disconnect').onclick=async()=>{running=false;$('level').value=0;await exchang
 $('start').onclick=()=>{const duration=selectedDuration();if(!online()||!mask||duration<0)return;sessionDuration=duration;$('level').value=0;running=true;render();send();};
 $('stop').onclick=()=>{running=false;$('level').value=0;render();send();};
 $('level').oninput=()=>{render();if(running)send();};
-$('modes').onclick=e=>{const b=e.target.closest('button[data-mode]');if(!b)return;mode=Number(b.dataset.mode);render();if(running)send();};
+$('modes').onclick=e=>{const b=e.target.closest('button[data-mode]');if(!b)return;mode=Number(b.dataset.mode);if(mode!==0&&(mask&(mask-1))){mask=0;if(running){running=false;$('level').value=0;}}render();if(online())send();};
 $('timerEnable').onchange=render;
 $('timerMinutes').oninput=render;
 $('timerSeconds').oninput=render;
